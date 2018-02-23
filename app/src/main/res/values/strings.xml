@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">Popular Movies Nanodegree</string>
+    <string name="movie_cover">Movie Cover</string>
+    <string name="title">Some movie Title</string>
+    <string name="genres">Some movie genres</string>
+    <string name="lorem_ipsum">Lorem Ipsum dolor sit amet</string>
+    <string name="expanded_poster_image">Expanded Poster Image</string>
+    <string name="network_error">Network Error. Make sure your device is connected to the internet</string>
+    <string name="top_rated">Top Rated</string>
+    <string name="item">Item</string>
+    <string name="show_most_popular">Show Most Popular</string>
+    <string name="show_top_rated">Show Top Rated</string>
+    <string name="category_most_popular">Most Popular Movies</string>
+    <string name="category_top_rated">Top Rated Movies</string>
+</resources>

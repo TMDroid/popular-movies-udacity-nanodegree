@@ -14,15 +14,11 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
-import java.util.List;
-
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
-import ro.adlabs.popular_movies_nanodegree.OnMovieClicked;
-import ro.adlabs.popular_movies_nanodegree.OnMoviesLoaded;
+import ro.adlabs.popular_movies_nanodegree.callbacks.OnMoviesLoaded;
 import ro.adlabs.popular_movies_nanodegree.R;
-import ro.adlabs.popular_movies_nanodegree.models.Movie;
 import ro.adlabs.popular_movies_nanodegree.util.ApiManager;
 import ro.adlabs.popular_movies_nanodegree.util.MoviesAdapter;
 import ro.adlabs.popular_movies_nanodegree.util.PaginationScrollListener;
@@ -60,13 +56,10 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        adapter = new MoviesAdapter(new OnMovieClicked() {
-            @Override
-            public void onClick(Movie movie) {
-                Intent movieDetailsIntent = new Intent(MainActivity.this, MovieDetailsActivity.class);
-                movieDetailsIntent.putExtra(MovieDetailsActivity.KEY_MOVIE, movie);
-                startActivity(movieDetailsIntent);
-            }
+        adapter = new MoviesAdapter(movie -> {
+            Intent movieDetailsIntent = new Intent(MainActivity.this, MovieDetailsActivity.class);
+            movieDetailsIntent.putExtra(MovieDetailsActivity.KEY_MOVIE, movie);
+            startActivity(movieDetailsIntent);
         });
         rvMovies.setAdapter(adapter);
         GridLayoutManager layoutManager = new GridLayoutManager(this, Utility.calculateNoOfColumns(this), LinearLayoutManager.VERTICAL, false);
@@ -75,7 +68,8 @@ public class MainActivity extends AppCompatActivity {
         rvMovies.addOnScrollListener(new PaginationScrollListener(layoutManager) {
             @Override
             protected void loadMoreItems() {
-                refreshList(false);
+                if (!preferenceManager.isCategoryFavorites())
+                    refreshList(false);
             }
 
             @Override
@@ -89,12 +83,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        srlRefresh.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
-            @Override
-            public void onRefresh() {
-                refreshList(true);
-            }
-        });
+        srlRefresh.setOnRefreshListener(() -> refreshList(true));
         preferenceManager = new PreferenceManager(this);
         setToolbarTitle();
 
@@ -116,13 +105,10 @@ public class MainActivity extends AppCompatActivity {
         }
 
         if (Utility.isOnline(this)) {
-            getMoviesPage(new OnMoviesLoaded() {
-                @Override
-                public void onLoad(List<Movie> movies) {
-                    currentApiPage++;
+            getMoviesPage(movies -> {
+                currentApiPage++;
 
-                    adapter.add(movies, resetPageCounter);
-                }
+                adapter.add(movies, resetPageCounter);
             });
         } else {
             rvMovies.setVisibility(View.GONE);
@@ -139,28 +125,20 @@ public class MainActivity extends AppCompatActivity {
      */
     private void getMoviesPage(final OnMoviesLoaded listener) {
         ApiManager apiManager = ApiManager.getInstance();
-        apiManager.getMovies(this, new OnMoviesLoaded() {
-            @Override
-            public void onLoad(final List<Movie> movies) {
-                runOnUiThread(new Runnable() {
-                    @Override
-                    public void run() {
-                        if (movies != null && !movies.isEmpty()) {
-                            listener.onLoad(movies);
+        apiManager.getMovies(this, movies -> runOnUiThread(() -> {
+            if (movies != null && !movies.isEmpty()) {
+                listener.onLoad(movies);
 
-                            rvMovies.setVisibility(View.VISIBLE);
-                            tvNetworkError.setVisibility(View.GONE);
-                        } else {
-                            rvMovies.setVisibility(View.GONE);
-                            tvNetworkError.setVisibility(View.VISIBLE);
-                        }
-
-                        srlRefresh.setRefreshing(false);
-                        isLoading = false;
-                    }
-                });
+                rvMovies.setVisibility(View.VISIBLE);
+                tvNetworkError.setVisibility(View.GONE);
+            } else {
+                rvMovies.setVisibility(View.GONE);
+                tvNetworkError.setVisibility(View.VISIBLE);
             }
-        }, currentApiPage);
+
+            srlRefresh.setRefreshing(false);
+            isLoading = false;
+        }), currentApiPage);
     }
 
     @Override
@@ -173,13 +151,18 @@ public class MainActivity extends AppCompatActivity {
     public boolean onPrepareOptionsMenu(Menu menu) {
         MenuItem mostPopular = menu.findItem(R.id.itemMostPopular);
         MenuItem topRated = menu.findItem(R.id.itemTopRated);
+        MenuItem favorites = menu.findItem(R.id.itemTopRated);
+
+        mostPopular.setVisible(true);
+        topRated.setVisible(true);
+        favorites.setVisible(true);
 
         if (preferenceManager.isCategoryMostPopular()) {
             mostPopular.setVisible(false);
-            topRated.setVisible(true);
         } else if (preferenceManager.isCategoryTopRated()) {
             topRated.setVisible(false);
-            mostPopular.setVisible(true);
+        } else if (preferenceManager.isCategoryFavorites()) {
+            favorites.setVisible(false);
         } else {
             throw new PreferenceManager.IllegalCategoryException("How did you get in here?!?");
         }
@@ -202,6 +185,8 @@ public class MainActivity extends AppCompatActivity {
             preferenceManager.setMoviesCategory(PreferenceManager.CATEGORY_MOST_POPULAR);
         } else if (id == R.id.itemTopRated) {
             preferenceManager.setMoviesCategory(PreferenceManager.CATEGORY_TOP_RATED);
+        } else if (id == R.id.itemFavorites) {
+            preferenceManager.setMoviesCategory(PreferenceManager.CATEGORY_FAVORITES);
         } else {
             throw new PreferenceManager.IllegalCategoryException("How did you get in here?!?");
         }
@@ -221,16 +206,20 @@ public class MainActivity extends AppCompatActivity {
      */
     private void setToolbarTitle() {
         if (preferenceManager != null) {
+
+            int titleResource;
             if (preferenceManager.isCategoryTopRated()) {
-                if (getSupportActionBar() != null) {
-                    getSupportActionBar().setTitle(R.string.category_top_rated);
-                }
+                titleResource = R.string.category_top_rated;
             } else if (preferenceManager.isCategoryMostPopular()) {
-                if (getSupportActionBar() != null) {
-                    getSupportActionBar().setTitle(R.string.category_most_popular);
-                }
+                titleResource = R.string.category_most_popular;
+            } else if (preferenceManager.isCategoryFavorites()) {
+                titleResource = R.string.category_favorites;
             } else {
                 throw new PreferenceManager.IllegalCategoryException("How did you get in here?!?");
+            }
+
+            if (getSupportActionBar() != null) {
+                getSupportActionBar().setTitle(titleResource);
             }
         }
     }

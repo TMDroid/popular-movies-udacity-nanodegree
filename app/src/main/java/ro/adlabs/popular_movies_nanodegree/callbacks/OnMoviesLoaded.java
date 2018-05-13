@@ -1,4 +1,4 @@
-package ro.adlabs.popular_movies_nanodegree;
+package ro.adlabs.popular_movies_nanodegree.callbacks;
 
 import java.util.List;
 

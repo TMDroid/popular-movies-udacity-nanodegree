@@ -21,6 +21,7 @@ public class PreferenceManager {
 
     public static final String CATEGORY_TOP_RATED = "top_rated";
     public static final String CATEGORY_MOST_POPULAR = "most_popular";
+    public static final String CATEGORY_FAVORITES = "favorites";
 
     private SharedPreferences sharedPreferences;
 
@@ -28,7 +29,7 @@ public class PreferenceManager {
         sharedPreferences = android.preference.PreferenceManager.getDefaultSharedPreferences(context);
 
         //Setting the default category on first app start to most popular movies
-        if(!isCategoryTopRated() && !isCategoryMostPopular()) {
+        if(!isCategoryTopRated() && !isCategoryMostPopular() &&!isCategoryFavorites()) {
             setMoviesCategory(CATEGORY_MOST_POPULAR);
         }
     }
@@ -40,7 +41,7 @@ public class PreferenceManager {
      * @param category
      */
     public void setMoviesCategory(String category) {
-        if(!category.equals(CATEGORY_MOST_POPULAR) && !category.equals(CATEGORY_TOP_RATED))
+        if(!category.equals(CATEGORY_MOST_POPULAR) && !category.equals(CATEGORY_TOP_RATED) && !category.equals(CATEGORY_FAVORITES))
             throw new IllegalCategoryException("The movie specified is unknown");
 
         SharedPreferences.Editor e = sharedPreferences.edit();
@@ -66,6 +67,16 @@ public class PreferenceManager {
     public boolean isCategoryMostPopular() {
         String category = sharedPreferences.getString(KEY_CATEGORY, null);
         return category != null && category.equals(CATEGORY_MOST_POPULAR);
+
+    }
+
+    /**
+     * Checks if the current selected Category is Favorites
+     * @return
+     */
+    public boolean isCategoryFavorites() {
+        String category = sharedPreferences.getString(KEY_CATEGORY, null);
+        return category != null && category.equals(CATEGORY_FAVORITES);
 
     }
 

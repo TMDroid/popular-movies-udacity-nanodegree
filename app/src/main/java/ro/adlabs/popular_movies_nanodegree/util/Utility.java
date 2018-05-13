@@ -1,8 +1,11 @@
 package ro.adlabs.popular_movies_nanodegree.util;
 
+import android.content.ActivityNotFoundException;
 import android.content.Context;
+import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
+import android.net.Uri;
 import android.util.DisplayMetrics;
 
 import org.json.JSONArray;
@@ -13,6 +16,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import ro.adlabs.popular_movies_nanodegree.models.Movie;
+import ro.adlabs.popular_movies_nanodegree.models.Review;
+import ro.adlabs.popular_movies_nanodegree.models.Trailer;
 
 /**
  * Created by danny on 2/22/18.
@@ -32,6 +37,7 @@ public class Utility {
     private static final String KEY_OVERVIEW = "overview";
     private static final String KEY_VOTE_AVERAGE = "vote_average";
     private static final String KEY_RELEASE_DATE = "release_date";
+    private static final String KEY_ID = "id";
 
 
     /**
@@ -74,17 +80,70 @@ public class Utility {
         for (int i = 0; i < allMovies.length(); i++) {
             JSONObject movieJson = allMovies.getJSONObject(i);
 
+            int id = movieJson.optInt(KEY_ID);
             String title = movieJson.getString(KEY_TITLE);
             String poster = String.format("%s%s%s", BASE_IMAGE_URL, ApiManager.DEFAULT_IMAGE_SIZE, movieJson.getString(KEY_POSTER));
             String overview = movieJson.getString(KEY_OVERVIEW);
             double average = movieJson.getDouble(KEY_VOTE_AVERAGE);
             String release = movieJson.getString(KEY_RELEASE_DATE);
 
-            Movie m = new Movie(title, poster, overview, average, release);
+            Movie m = new Movie(id, title, poster, overview, average, release);
             movies.add(m);
         }
 
         return movies;
 
+    }
+
+    public static List<Trailer> parseTrailers(String json) throws JSONException {
+        List<Trailer> theTrailers = new ArrayList<>();
+
+        JSONObject main = new JSONObject(json);
+        JSONArray allTrailers = main.getJSONArray("results");
+
+        for(int i = 0; i < allTrailers.length(); i++) {
+            JSONObject t = allTrailers.getJSONObject(i);
+
+            String id = t.optString("id");
+            String name = t.optString("name");
+            String key = t.optString("key");
+
+            Trailer trailer = new Trailer(id, name, key);
+            theTrailers.add(trailer);
+        }
+
+
+        return theTrailers;
+    }
+
+    public static List<Review> parseReviews(String json) throws JSONException {
+        List<Review> theReviews = new ArrayList<>();
+
+        JSONObject main = new JSONObject(json);
+        JSONArray allReviews = main.getJSONArray("results");
+
+        for(int i = 0; i < allReviews.length(); i++) {
+            JSONObject t = allReviews.getJSONObject(i);
+
+            String author = t.optString("author");
+            String content = t.optString("content");
+
+            Review Review = new Review(author, content);
+            theReviews.add(Review);
+        }
+
+
+        return theReviews;
+    }
+
+    public static void watchYoutubeVideo(Context context, String id){
+        Intent appIntent = new Intent(Intent.ACTION_VIEW, Uri.parse("vnd.youtube:" + id));
+        Intent webIntent = new Intent(Intent.ACTION_VIEW,
+                Uri.parse("http://www.youtube.com/watch?v=" + id));
+        try {
+            context.startActivity(appIntent);
+        } catch (ActivityNotFoundException ex) {
+            context.startActivity(webIntent);
+        }
     }
 }

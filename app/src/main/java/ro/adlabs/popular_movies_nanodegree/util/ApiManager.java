@@ -2,11 +2,13 @@ package ro.adlabs.popular_movies_nanodegree.util;
 
 
 import android.content.Context;
-import android.view.View;
+import android.database.Cursor;
+import android.net.Uri;
 
 import org.json.JSONException;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
@@ -15,12 +17,13 @@ import okhttp3.Callback;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.Response;
-import ro.adlabs.popular_movies_nanodegree.OnMoviesLoaded;
+import ro.adlabs.popular_movies_nanodegree.callbacks.OnMoviesLoaded;
+import ro.adlabs.popular_movies_nanodegree.callbacks.OnReviewsLoaded;
+import ro.adlabs.popular_movies_nanodegree.callbacks.OnTrailersLoaded;
 import ro.adlabs.popular_movies_nanodegree.models.Movie;
-
-/**
- * Created by danny on 2/21/18.
- */
+import ro.adlabs.popular_movies_nanodegree.models.MoviesContentProvider;
+import ro.adlabs.popular_movies_nanodegree.models.Review;
+import ro.adlabs.popular_movies_nanodegree.models.Trailer;
 
 /**
  * A class to manage the API calls
@@ -28,7 +31,7 @@ import ro.adlabs.popular_movies_nanodegree.models.Movie;
  */
 public class ApiManager {
 
-    public static final String API_KEY = "<insert-api-key-here>";
+    public static final String API_KEY = "<INSERT_API_KEY>";
     public static final String BASE_URL = "https://api.themoviedb.org/3";
 
     public static final String DEFAULT_IMAGE_SIZE = "w342";
@@ -106,7 +109,117 @@ public class ApiManager {
             getMostPopular(listener, page);
         } else if(manager.isCategoryTopRated()) {
             getTopRated(listener, page);
+        } else if(manager.isCategoryFavorites()) {
+            getFavoriteMovies(context, listener);
         }
+    }
+
+    private void getFavoriteMovies(Context context, OnMoviesLoaded listener) {
+        Uri uri = MoviesContentProvider.CONTENT_URI;
+        Cursor allMoviesCursor = context.getContentResolver().query(uri, null, null, null, null);
+        List<Movie> theMovies = new ArrayList<>();
+
+        if(allMoviesCursor == null) {
+            listener.onLoad(null);
+            return;
+        }
+
+        if(allMoviesCursor.getCount() != 0) {
+            allMoviesCursor.moveToFirst();
+            do {
+                int id = allMoviesCursor.getInt(0);
+                String title = allMoviesCursor.getString(1);
+                double rating = allMoviesCursor.getDouble(2);
+                String poster = allMoviesCursor.getString(3);
+
+                Movie m = new Movie(id, title, poster, rating);
+
+                theMovies.add(m);
+            } while (allMoviesCursor.moveToNext());
+        }
+
+        listener.onLoad(theMovies);
+    }
+
+    /**
+     * Get the list of trailers for a certain movie
+     *
+     * @param cb
+     * @param movieId
+     */
+    public void getMovieTrailers(final OnTrailersLoaded cb, int movieId) {
+        String path = String.format("/movie/%d/videos", movieId);
+        String url = buildPath(path);
+
+        Request.Builder builder = new Request.Builder();
+        final Request request = builder.url(url).build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                cb.onTrailersLoaded(null);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response)  {
+                List<Trailer> trailers = null;
+                try {
+                    trailers = getTrailers(response);
+                } catch (IOException e) {
+                    onFailure(call, e);
+                }
+
+                cb.onTrailersLoaded(trailers);
+            }
+        });
+    }
+
+    /**
+     * Get the list of reviews for a certain movie
+     *
+     * @param cb
+     * @param movieId
+     */
+    public void getMovieReviews(OnReviewsLoaded cb, int movieId) {
+        String path = String.format("/movie/%d/reviews", movieId);
+        String url = buildPath(path);
+
+        Request.Builder builder = new Request.Builder();
+        final Request request = builder.url(url).build();
+
+        client.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Call call, IOException e) {
+                cb.onReviewsLoad(null);
+            }
+
+            @Override
+            public void onResponse(Call call, Response response)  {
+                List<Review> reviews = null;
+                try {
+                    reviews = getReviews(response);
+                } catch (IOException e) {
+                    onFailure(call, e);
+                }
+
+                cb.onReviewsLoad(reviews);
+            }
+
+            private List<Review> getReviews(Response response) throws IOException {
+                if(response.body() == null) {
+                    return null;
+                }
+                String json = response.body().string();
+
+                try {
+                    return Utility.parseReviews(json);
+                } catch (JSONException e) {
+                    e.printStackTrace();
+                }
+
+                return null;
+            }
+        });
     }
 
     /**
@@ -162,6 +275,27 @@ public class ApiManager {
     }
 
     /**
+     * Used to extract the Movies List from an API response
+     * @param response
+     * @return
+     * @throws IOException
+     */
+    private List<Trailer> getTrailers(Response response) throws IOException {
+        if(response.body() == null) {
+            return null;
+        }
+        String json = response.body().string();
+
+        try {
+            return Utility.parseTrailers(json);
+        } catch (JSONException e) {
+            e.printStackTrace();
+        }
+
+        return null;
+    }
+
+    /**
      * Used to actually build the request url includin the API key and the page number from
      * a base url and the provided path
      *
@@ -171,5 +305,9 @@ public class ApiManager {
      */
     private String buildPath(String path, int page) {
         return String.format(Locale.getDefault(), "%s%s?api_key=%s&page=%d", BASE_URL, path, API_KEY, page);
+    }
+
+    private String buildPath(String path) {
+        return String.format(Locale.getDefault(), "%s%s?api_key=%s", BASE_URL, path, API_KEY);
     }
 }

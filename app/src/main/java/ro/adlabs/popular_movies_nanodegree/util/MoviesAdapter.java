@@ -14,7 +14,7 @@ import com.squareup.picasso.Picasso;
 import java.util.ArrayList;
 import java.util.List;
 
-import ro.adlabs.popular_movies_nanodegree.OnMovieClicked;
+import ro.adlabs.popular_movies_nanodegree.callbacks.OnMovieClicked;
 import ro.adlabs.popular_movies_nanodegree.R;
 import ro.adlabs.popular_movies_nanodegree.models.Movie;
 

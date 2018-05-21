@@ -148,6 +148,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+
+        if(preferenceManager.isCategoryFavorites()) {
+            invalidateOptionsMenu();
+            refreshList(true);
+        }
+    }
+
+    @Override
     public boolean onPrepareOptionsMenu(Menu menu) {
         MenuItem mostPopular = menu.findItem(R.id.itemMostPopular);
         MenuItem topRated = menu.findItem(R.id.itemTopRated);

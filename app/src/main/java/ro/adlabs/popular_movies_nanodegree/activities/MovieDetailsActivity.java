@@ -18,6 +18,7 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.squareup.picasso.Picasso;
 
@@ -139,7 +140,7 @@ public class MovieDetailsActivity extends AppCompatActivity {
                 calendar.setTime(simpleDateFormat.parse(movie.getReleaseDate()));
             } catch (ParseException e) {
                 e.printStackTrace();
-                throw new RuntimeException("Could not format date");
+                throw new RuntimeException(getString(R.string.date_error));
             }
 
             String monthName = calendar.getDisplayName(Calendar.MONTH, Calendar.LONG, Locale.getDefault());
@@ -151,11 +152,11 @@ public class MovieDetailsActivity extends AppCompatActivity {
         //Setting the rest of the data
         title.setText(movie.getTitle());
         overview.setText(movie.getOverview());
-        averageRating.setText(String.format("Average rating: %s", movie.getVoteAverage()));
+        averageRating.setText(String.format(getString(R.string.average_rating), movie.getVoteAverage()));
 
         //Showing a snackbar for the first time opening the activity telling the user to click the image to enlarge it
         if (!preferenceManager.hasShownSnackbar()) {
-            Snackbar.make(container, "Click on the movie cover to enlarge it", Snackbar.LENGTH_INDEFINITE).show();
+            Snackbar.make(container, R.string.click_enlarge, Snackbar.LENGTH_INDEFINITE).show();
             preferenceManager.setShownSnackbar();
         }
 
@@ -210,8 +211,12 @@ public class MovieDetailsActivity extends AppCompatActivity {
             values.put(MySQLiteHelper.COLUMN_RATING, movie.getVoteAverage());
 
             getContentResolver().insert(MoviesContentProvider.CONTENT_URI, values);
+
+
+            Toast.makeText(this, String.format(getString(R.string.movie_added_to_favs), movie.getTitle()), Toast.LENGTH_LONG).show();
         } else if (item.getItemId() == R.id.itemRemoveFromFavs) {
             getContentResolver().delete(buildItemUri(), null, null);
+            Toast.makeText(this, String.format(getString(R.string.movie_removed_from_favs), movie.getTitle()), Toast.LENGTH_LONG).show();
         }
 
         return super.onOptionsItemSelected(item);

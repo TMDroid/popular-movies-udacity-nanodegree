@@ -39,5 +39,5 @@ dependencies {
     annotationProcessor 'com.jakewharton:butterknife-compiler:8.8.1'
 
     implementation 'com.squareup.picasso:picasso:2.5.2'
-    implementation project(path: ':imagezoom')
+    implementation 'com.github.felixsoares:ImageZoom:1.0'
 }

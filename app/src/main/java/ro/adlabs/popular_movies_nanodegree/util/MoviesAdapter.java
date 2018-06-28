@@ -2,6 +2,7 @@ package ro.adlabs.popular_movies_nanodegree.util;
 
 import android.support.v7.widget.CardView;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -58,6 +59,7 @@ public class MoviesAdapter extends RecyclerView.Adapter<MoviesAdapter.ViewHolder
     @Override
     public void onBindViewHolder(ViewHolder holder, int position) {
         final Movie m = theMovies.get(position);
+        Log.d("str", String.valueOf(position));
 
         Picasso.with(holder.poster.getContext())
                 .load(m.getPosterPath())
@@ -86,7 +88,7 @@ public class MoviesAdapter extends RecyclerView.Adapter<MoviesAdapter.ViewHolder
     }
 
     public void set(List<Movie> movies) {
-        movies.clear();
+        clear();
         add(movies);
     }
 
@@ -123,5 +125,13 @@ public class MoviesAdapter extends RecyclerView.Adapter<MoviesAdapter.ViewHolder
             theMovies = new ArrayList<>();
 
         add(movies);
+    }
+
+    public List<Movie> getTheMovies() {
+        return theMovies;
+    }
+
+    public void clear() {
+        theMovies.clear();
     }
 }

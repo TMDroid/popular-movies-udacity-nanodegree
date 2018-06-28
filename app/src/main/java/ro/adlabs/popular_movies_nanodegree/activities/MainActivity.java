@@ -2,6 +2,8 @@ package ro.adlabs.popular_movies_nanodegree.activities;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.os.Parcelable;
+import android.os.PersistableBundle;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.DefaultItemAnimator;
@@ -14,11 +16,16 @@ import android.view.MenuItem;
 import android.view.View;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import butterknife.BindView;
 import butterknife.ButterKnife;
 import butterknife.Unbinder;
+import ro.adlabs.popular_movies_nanodegree.callbacks.OnMovieClicked;
 import ro.adlabs.popular_movies_nanodegree.callbacks.OnMoviesLoaded;
 import ro.adlabs.popular_movies_nanodegree.R;
+import ro.adlabs.popular_movies_nanodegree.models.Movie;
 import ro.adlabs.popular_movies_nanodegree.util.ApiManager;
 import ro.adlabs.popular_movies_nanodegree.util.MoviesAdapter;
 import ro.adlabs.popular_movies_nanodegree.util.PaginationScrollListener;
@@ -28,6 +35,7 @@ import ro.adlabs.popular_movies_nanodegree.util.Utility;
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = MainActivity.class.getName();
+    private static final String KEY_MOVIES = "movies";
 
     Unbinder unbinder;
 
@@ -47,6 +55,12 @@ public class MainActivity extends AppCompatActivity {
 
     PreferenceManager preferenceManager;
 
+    OnMovieClicked onMovieClicked = (movie) -> {
+        Intent movieDetailsIntent = new Intent(MainActivity.this, MovieDetailsActivity.class);
+        movieDetailsIntent.putExtra(MovieDetailsActivity.KEY_MOVIE, movie);
+        startActivity(movieDetailsIntent);
+    };
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -56,11 +70,18 @@ public class MainActivity extends AppCompatActivity {
         Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        adapter = new MoviesAdapter(movie -> {
-            Intent movieDetailsIntent = new Intent(MainActivity.this, MovieDetailsActivity.class);
-            movieDetailsIntent.putExtra(MovieDetailsActivity.KEY_MOVIE, movie);
-            startActivity(movieDetailsIntent);
-        });
+        adapter = new MoviesAdapter(onMovieClicked);
+
+        /*
+        if(savedInstanceState != null) {
+            List<Movie> movieList = savedInstanceState.getParcelableArrayList(KEY_MOVIES);
+            adapter.set(movieList);
+        } else {
+            refreshList(true);
+        }
+        */
+        refreshList(true);
+
         rvMovies.setAdapter(adapter);
         GridLayoutManager layoutManager = new GridLayoutManager(this, Utility.calculateNoOfColumns(this), LinearLayoutManager.VERTICAL, false);
         rvMovies.setLayoutManager(layoutManager);
@@ -83,11 +104,11 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+
         srlRefresh.setOnRefreshListener(() -> refreshList(true));
         preferenceManager = new PreferenceManager(this);
         setToolbarTitle();
 
-        refreshList(true);
     }
 
     /**
@@ -155,6 +176,12 @@ public class MainActivity extends AppCompatActivity {
             invalidateOptionsMenu();
             refreshList(true);
         }
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        outState.putParcelableArrayList(KEY_MOVIES, new ArrayList<>(adapter.getTheMovies()));
+        super.onSaveInstanceState(outState);
     }
 
     @Override

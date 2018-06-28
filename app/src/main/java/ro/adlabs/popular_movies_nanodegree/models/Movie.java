@@ -3,7 +3,6 @@ package ro.adlabs.popular_movies_nanodegree.models;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.os.Parcelable.Creator;
 
 import java.util.List;
 
